@@ -3,10 +3,6 @@ body {
   background-color: #f4f4f4;
   margin: 0;
   padding: 0;
-  height: 100vh; /* Adicionando altura total da tela */
-  display: flex; /* Flexbox */
-  align-items: center; /* Centraliza verticalmente */
-  justify-content: center; /* Centraliza horizontalmente */
 }
 
 .app-container {
