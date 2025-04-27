@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from './supabaseClient';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -8,7 +9,7 @@ function App() {
     const file = event.target.files[0];
     if (file && file.type === 'application/pdf') {
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file)); // cria URL temporária para visualização
+      setPreviewUrl(URL.createObjectURL(file));
     } else {
       alert('Por favor, selecione um arquivo PDF válido.');
       setSelectedFile(null);
@@ -16,15 +17,27 @@ function App() {
     }
   };
 
-  const handleUpload = () => {
-    if (selectedFile) {
-      // Aqui você faria o upload do arquivo para o servidor ou serviço de armazenamento
-      alert(`Arquivo "${selectedFile.name}" enviado com sucesso!`);
-      // Limpa a seleção
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      alert('Por favor, selecione um arquivo primeiro.');
+      return;
+    }
+
+    const filePath = `${Date.now()}-${selectedFile.name}`;
+
+    const { data, error } = await supabase
+      .storage
+      .from('folhetos') // Nome do bucket que você criou
+      .upload(filePath, selectedFile);
+
+    if (error) {
+      console.error('Erro ao enviar:', error);
+      alert('Erro ao enviar o folheto.');
+    } else {
+      console.log('Arquivo enviado:', data);
+      alert('Folheto enviado com sucesso!');
       setSelectedFile(null);
       setPreviewUrl('');
-    } else {
-      alert('Por favor, selecione um arquivo primeiro.');
     }
   };
 
