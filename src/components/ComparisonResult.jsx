@@ -1,29 +1,25 @@
 import React from 'react';
 
-function ComparisonResult({ results }) {
-  if (!results || results.length === 0) {
-    return <p>Nenhuma comparação disponível.</p>;
-  }
-
+function ComparisonResult({ comparison }) {
   return (
     <div>
-      <h2>Resultados da Comparação</h2>
+      <h2>Resultados da Comparação:</h2>
       <table>
         <thead>
           <tr>
             <th>Produto</th>
             <th>Preço Folheto 1</th>
             <th>Preço Folheto 2</th>
-            <th>Diferença</th>
+            <th>Mais Barato</th>
           </tr>
         </thead>
         <tbody>
-          {results.map((item, index) => (
+          {comparison.map((item, index) => (
             <tr key={index}>
               <td>{item.name}</td>
-              <td>R$ {item.price1}</td>
-              <td>R$ {item.price2}</td>
-              <td>{item.difference >= 0 ? `+R$ ${item.difference}` : `-R$ ${Math.abs(item.difference)}`}</td>
+              <td>R$ {item.price1.toFixed(2)}</td>
+              <td>R$ {item.price2.toFixed(2)}</td>
+              <td>{item.cheaperAt}</td>
             </tr>
           ))}
         </tbody>
