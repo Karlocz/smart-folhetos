@@ -1,10 +1,12 @@
-import UploadForm from "./UploadForm";
+import React from 'react';
 
-export default function App() {
+function App() {
   return (
     <div>
-      <h1>Smart Folhetos</h1>
-      <UploadForm />
+      <h1>Bem-vindo ao Smart Folhetos!</h1>
+      <p>Agora você pode comparar ofertas de supermercado facilmente.</p>
     </div>
   );
 }
+
+export default App;
