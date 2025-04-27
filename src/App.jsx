@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './src/App.css';
+import './App.css';
 
 function App() {
   const [file, setFile] = useState(null);
