@@ -114,7 +114,7 @@ function App() {
       <h1>Smart Folhetos</h1>
 
       <div className="upload-container">
-        <h2>Envie seu PDF</n2>
+        <h2>Envie seu PDF</h2>
         <form onSubmit={handleUpload} className="upload-form">
           <input type="file" accept="application/pdf" onChange={handleFileChange} className="file-input" />
           <button type="submit" className="submit-btn">Upload</button>
