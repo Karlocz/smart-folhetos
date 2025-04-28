@@ -94,6 +94,9 @@ function App() {
         canvas.height = viewport.height;
 
         await page.render({ canvasContext: ctx, viewport }).promise;
+        // ADICIONA canvas ao DOM para debug visual
+        document.body.appendChild(canvas);
+
         const imgData = canvas.toDataURL('image/png');
         const { data: { text } } = await worker.recognize(imgData);
         fullText += text + '\n';
