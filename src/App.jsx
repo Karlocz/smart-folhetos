@@ -1,28 +1,31 @@
-// src/App.jsx
-
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import supabase from './services/supabaseClient'; // Importando o cliente Supabase
+import supabase from './services/supabaseClient';
 
 function App() {
   const [file, setFile] = useState(null);
-  const [folhetos, setFolhetos] = useState([]); // Para armazenar os folhetos do Supabase
+  const [folhetos, setFolhetos] = useState([]);
 
-  // Função para carregar os folhetos do Supabase
   const fetchFolhetos = async () => {
     const { data, error } = await supabase
-      .from('folhetos') // Nome da tabela onde os folhetos são armazenados
-      .select('*');
+      .storage
+      .from('folhetos') // Nome do bucket
+      .list('public', {
+        limit: 100,
+        offset: 0,
+        sortBy: { column: 'name', order: 'asc' }
+      });
 
     if (error) {
-      console.error("Erro ao carregar os folhetos:", error);
+      console.error('Erro ao carregar os folhetos:', error);
     } else {
+      console.log('Folhetos carregados:', data);
       setFolhetos(data);
     }
   };
 
   useEffect(() => {
-    fetchFolhetos(); // Carregar folhetos ao iniciar
+    fetchFolhetos();
   }, []);
 
   const handleFileChange = (event) => {
@@ -37,22 +40,27 @@ function App() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("folheto", file);
-
-    // Enviar o folheto para o Supabase
     const { data, error } = await supabase
       .storage
-      .from('folhetos') // Nome do bucket onde o arquivo será armazenado
+      .from('folhetos')
       .upload(`public/${file.name}`, file);
 
     if (error) {
-      console.error("Erro ao enviar arquivo:", error);
-      alert("Falha no envio do arquivo.");
+      console.error('Erro ao enviar arquivo:', error);
+      alert('Falha no envio do arquivo.');
     } else {
-      alert("Arquivo enviado com sucesso!");
-      fetchFolhetos(); // Recarregar a lista de folhetos
+      alert('Arquivo enviado com sucesso!');
+      fetchFolhetos(); // Atualizar a lista após upload
     }
+  };
+
+  // Gerar URL pública
+  const getPublicUrl = (path) => {
+    const { publicURL } = supabase
+      .storage
+      .from('folhetos')
+      .getPublicUrl(`public/${path}`);
+    return publicURL;
   };
 
   return (
@@ -77,13 +85,17 @@ function App() {
       <div className="folhetos-list">
         <h2>Folhetos Enviados</h2>
         <ul>
-          {folhetos.map(folheto => (
-            <li key={folheto.id}>
-              <a href={folheto.url} target="_blank" rel="noopener noreferrer">
-                {folheto.name}
-              </a>
-            </li>
-          ))}
+          {folhetos.length > 0 ? (
+            folhetos.map((folheto) => (
+              <li key={folheto.name}>
+                <a href={getPublicUrl(folheto.name)} target="_blank" rel="noopener noreferrer">
+                  {folheto.name}
+                </a>
+              </li>
+            ))
+          ) : (
+            <li>Nenhum folheto encontrado.</li>
+          )}
         </ul>
       </div>
     </div>
