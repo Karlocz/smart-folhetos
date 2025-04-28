@@ -65,25 +65,28 @@ function App() {
   };
 
   const handleOCR = async (path) => {
-    const imageUrl = getPublicUrl(path);
+  const imageUrl = getPublicUrl(path);
 
-    setIsLoadingOCR(true);
-    setOcrResult('');
+  setIsLoadingOCR(true);
+  setOcrResult('');
 
-    try {
-      const { data: { text } } = await Tesseract.recognize(
-        imageUrl,
-        'por', // OCR em português
-        { logger: m => console.log(m) }
-      );
-      setOcrResult(text);
-    } catch (error) {
-      console.error('Erro no OCR:', error);
-      alert('Falha ao processar OCR.');
-    } finally {
-      setIsLoadingOCR(false);
-    }
-  };
+  console.log("Fazendo OCR na imagem:", imageUrl); // Adicione este log para verificar o URL!
+
+  try {
+    const result = await Tesseract.recognize(
+      imageUrl,
+      'por', // idioma português
+      { logger: m => console.log(m) }
+    );
+
+    setOcrResult(result.data.text);
+  } catch (error) {
+    console.error('Erro no OCR:', error);
+    alert('Falha ao processar OCR.');
+  } finally {
+    setIsLoadingOCR(false);
+  }
+};
 
   return (
     <div className="app-container">
