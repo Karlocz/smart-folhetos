@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import * as pdfjsLib from 'pdfjs-dist';
-import Tesseract from 'tesseract.js';
+import { createWorker } from 'tesseract.js';
 import './App.css';
+
+// Configura worker do pdfjs-dist via CDN
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 // Conexão com Supabase
 const supabase = createClient(
@@ -20,36 +23,37 @@ function App() {
     fetchDocs();
   }, []);
 
+  // Lista arquivos na pasta 'upload' do bucket 'folhetos'
   const fetchDocs = async () => {
-    const { data, error } = await supabase
-      .storage
+    const { data, error } = await supabase.storage
       .from('folhetos')
       .list('upload', { limit: 100, offset: 0, sortBy: { column: 'name', order: 'asc' } });
 
     if (error) {
       console.error('Erro ao listar arquivos:', error.message);
-    } else {
-      const arquivos = data
-        .filter(item => item.metadata && item.metadata.size > 0)
-        .map(item => ({
-          name: item.name,
-          path: `upload/${item.name}`
-        }));
-      setDocs(arquivos);
+      return;
     }
+
+    const arquivos = data
+      .filter(item => item.metadata && item.metadata.size > 0)
+      .map(item => ({ name: item.name, path: `upload/${item.name}` }));
+
+    setDocs(arquivos);
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = e => {
     setFile(e.target.files[0]);
     setOcrText('');
   };
 
-  const handleUpload = async (e) => {
+  const handleUpload = async e => {
     e.preventDefault();
     if (!file) return alert('Selecione um arquivo.');
 
     const path = `upload/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from('folhetos').upload(path, file, { upsert: true });
+    const { error } = await supabase.storage
+      .from('folhetos')
+      .upload(path, file, { upsert: true });
 
     if (error) {
       console.error('Erro no upload:', error.message);
@@ -61,15 +65,26 @@ function App() {
     }
   };
 
-  const handleOCR = async (path) => {
+  const handleOCR = async path => {
     setLoading(true);
     setOcrText('');
 
     try {
+      // Obtem URL pública do PDF
       const { data: { publicUrl } } = supabase.storage.from('folhetos').getPublicUrl(path);
-      const pdf = await pdfjsLib.getDocument(publicUrl).promise;
-      let fullText = '';
+      // Busca o PDF como arrayBuffer
+      const res = await fetch(publicUrl);
+      const arrayBuffer = await res.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
+      // Inicializa worker do Tesseract
+      const worker = createWorker({ logger: m => console.log(m) });
+      await worker.load();
+      await worker.loadLanguage('por');
+      await worker.initialize('por');
+
+      let fullText = '';
+      // Processa cada página
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const page = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: 2 });
@@ -79,12 +94,12 @@ function App() {
         canvas.height = viewport.height;
 
         await page.render({ canvasContext: ctx, viewport }).promise;
-        const img = canvas.toDataURL('image/png');
-
-        const { data: { text } } = await Tesseract.recognize(img, 'por', { logger: m => console.log(m) });
+        const imgData = canvas.toDataURL('image/png');
+        const { data: { text } } = await worker.recognize(imgData);
         fullText += text + '\n';
       }
 
+      await worker.terminate();
       setOcrText(fullText);
     } catch (error) {
       console.error('Falha ao processar OCR:', error);
@@ -99,7 +114,7 @@ function App() {
       <h1>Smart Folhetos</h1>
 
       <div className="upload-container">
-        <h2>Envie seu PDF</h2>
+        <h2>Envie seu PDF</n2>
         <form onSubmit={handleUpload} className="upload-form">
           <input type="file" accept="application/pdf" onChange={handleFileChange} className="file-input" />
           <button type="submit" className="submit-btn">Upload</button>
