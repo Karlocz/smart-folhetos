@@ -47,19 +47,23 @@ function App() {
       return;
     }
 
-    const { data, error } = await supabase.storage
-      .from('folhetos')
-      .upload(`uploads/${Date.now()}_${file.name}`, file);
+   const { data, error } = await supabase
+  .storage
+  .from('folhetos')
+  .list('upload', {
+    limit: 100,
+    offset: 0,
+    sortBy: { column: 'name', order: 'asc' }
+  });
 
-    if (error) {
-      console.error('Erro no upload:', error);
-      alert('Falha no envio do arquivo.');
-    } else {
-      alert('Arquivo enviado com sucesso!');
-      setFile(null);
-      fetchFolhetos();
-    }
-  };
+if (error) {
+  console.error('Erro ao listar arquivos:', error.message);
+} else {
+  // Filtra: pega apenas os itens que são arquivos
+  const arquivos = data.filter(item => item.metadata && item.metadata.size > 0);
+  setFolhetos(arquivos);
+}
+
 
   const handleSelectFolheto = (e, folhetoName) => {
     if (e.target.checked) {
