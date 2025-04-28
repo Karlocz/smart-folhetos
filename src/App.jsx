@@ -1,27 +1,28 @@
+// src/App.jsx
+
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { supabase } from './services/supabaseClient';
+import supabase from './services/supabaseClient'; // Importando o cliente Supabase
 
 function App() {
   const [file, setFile] = useState(null);
-  const [folhetos, setFolhetos] = useState([]);
-  
-  // Função para carregar a lista de folhetos
+  const [folhetos, setFolhetos] = useState([]); // Para armazenar os folhetos do Supabase
+
+  // Função para carregar os folhetos do Supabase
   const fetchFolhetos = async () => {
     const { data, error } = await supabase
-      .from('folhetos') // Nome da tabela
-      .select('*'); // Seleciona todas as colunas
+      .from('folhetos') // Nome da tabela onde os folhetos são armazenados
+      .select('*');
 
     if (error) {
-      console.error("Erro ao carregar os folhetos", error);
-      return;
+      console.error("Erro ao carregar os folhetos:", error);
+    } else {
+      setFolhetos(data);
     }
-    setFolhetos(data); // Atualiza o estado com a lista de folhetos
   };
 
-  // UseEffect para buscar os folhetos ao carregar o componente
   useEffect(() => {
-    fetchFolhetos();
+    fetchFolhetos(); // Carregar folhetos ao iniciar
   }, []);
 
   const handleFileChange = (event) => {
@@ -39,21 +40,18 @@ function App() {
     const formData = new FormData();
     formData.append("folheto", file);
 
-    try {
-      const response = await fetch("https://ongdxywgxszpxopxqfyq.supabase.co", {
-        method: "POST",
-        body: formData
-      });
+    // Enviar o folheto para o Supabase
+    const { data, error } = await supabase
+      .storage
+      .from('folhetos') // Nome do bucket onde o arquivo será armazenado
+      .upload(`public/${file.name}`, file);
 
-      const data = await response.json();
-      console.log(data.message);
-      alert("Arquivo enviado com sucesso!");
-      
-      // Recarregar os folhetos após o envio
-      fetchFolhetos();
-    } catch (error) {
+    if (error) {
       console.error("Erro ao enviar arquivo:", error);
       alert("Falha no envio do arquivo.");
+    } else {
+      alert("Arquivo enviado com sucesso!");
+      fetchFolhetos(); // Recarregar a lista de folhetos
     }
   };
 
@@ -76,13 +74,14 @@ function App() {
         </form>
       </div>
 
-      <div className="folheto-list">
+      <div className="folhetos-list">
         <h2>Folhetos Enviados</h2>
         <ul>
-          {folhetos.map((folheto, index) => (
-            <li key={index}>
-              <p>{folheto.nome}</p>
-              {/* Aqui você pode exibir mais detalhes do folheto, se necessário */}
+          {folhetos.map(folheto => (
+            <li key={folheto.id}>
+              <a href={folheto.url} target="_blank" rel="noopener noreferrer">
+                {folheto.name}
+              </a>
             </li>
           ))}
         </ul>
