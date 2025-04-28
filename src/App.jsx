@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import supabase from './services/supabaseClient';
+import Tesseract from 'tesseract.js';
 
 function App() {
   const [file, setFile] = useState(null);
   const [folhetos, setFolhetos] = useState([]);
+  const [ocrResult, setOcrResult] = useState('');
+  const [isLoadingOCR, setIsLoadingOCR] = useState(false);
 
   const fetchFolhetos = async () => {
     const { data, error } = await supabase
       .storage
-      .from('folhetos') // Nome do bucket
+      .from('folhetos')
       .list('public', {
         limit: 100,
         offset: 0,
@@ -19,7 +22,6 @@ function App() {
     if (error) {
       console.error('Erro ao carregar os folhetos:', error);
     } else {
-      console.log('Folhetos carregados:', data);
       setFolhetos(data);
     }
   };
@@ -50,17 +52,37 @@ function App() {
       alert('Falha no envio do arquivo.');
     } else {
       alert('Arquivo enviado com sucesso!');
-      fetchFolhetos(); // Atualizar a lista após upload
+      fetchFolhetos(); // Atualiza a lista
     }
   };
 
-  // Gerar URL pública
   const getPublicUrl = (path) => {
     const { publicURL } = supabase
       .storage
       .from('folhetos')
       .getPublicUrl(`public/${path}`);
     return publicURL;
+  };
+
+  const handleOCR = async (path) => {
+    const imageUrl = getPublicUrl(path);
+
+    setIsLoadingOCR(true);
+    setOcrResult('');
+
+    try {
+      const { data: { text } } = await Tesseract.recognize(
+        imageUrl,
+        'por', // OCR em português
+        { logger: m => console.log(m) }
+      );
+      setOcrResult(text);
+    } catch (error) {
+      console.error('Erro no OCR:', error);
+      alert('Falha ao processar OCR.');
+    } finally {
+      setIsLoadingOCR(false);
+    }
   };
 
   return (
@@ -91,6 +113,9 @@ function App() {
                 <a href={getPublicUrl(folheto.name)} target="_blank" rel="noopener noreferrer">
                   {folheto.name}
                 </a>
+                <button onClick={() => handleOCR(folheto.name)} className="submit-btn" style={{ marginLeft: '10px' }}>
+                  Ler Texto (OCR)
+                </button>
               </li>
             ))
           ) : (
@@ -98,6 +123,15 @@ function App() {
           )}
         </ul>
       </div>
+
+      {isLoadingOCR && <p>Processando OCR, aguarde...</p>}
+
+      {ocrResult && (
+        <div className="ocr-result">
+          <h2>Texto Extraído:</h2>
+          <pre>{ocrResult}</pre>
+        </div>
+      )}
     </div>
   );
 }
